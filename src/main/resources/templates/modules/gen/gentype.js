@@ -1,0 +1,199 @@
+$(function () {
+    $("#jqGrid").jqGrid({
+        url: baseURL + 'gen/gentype/list',
+        datatype: "json",
+        colModel: [			
+			{ label: 'id', name: 'id', index: 'id', width: 50, key: true },
+			{ label: '${lang.gen_gentype_column_database_type}', name: 'databaseType', index: 'database_type', width: 80 },
+			{ label: '${lang.gen_gentype_column_root_package}', name: 'rootPackage', index: 'root_package', width: 80 },
+			{ label: '${lang.gen_gentype_column_module_package}', name: 'modulePackage', index: 'module_package', width: 80 },
+			{ label: '${lang.gen_gentype_column_module_name}', name: 'moduleName', index: 'module_name', width: 80 },
+			{ label: '${lang.gen_gentype_column_module_text}', name: 'moduleText', index: 'module_text', width: 80 },
+			{ label: '${lang.gen_gentype_column_author_name}', name: 'authorName', index: 'author_name', width: 80 },
+			{ label: '${lang.gen_gentype_column_email}', name: 'email', index: 'email', width: 80 },
+			{ label: '${lang.gen_gentype_column_table_prefix}', name: 'tablePrefix', index: 'table_prefix', width: 80 },
+			{ label: '${lang.gen_gentype_column_mapping_string}', name: 'mappingString', index: 'mapping_string', width: 80 },
+        ],
+		viewrecords: true,
+        height: 385,
+        rowNum: 10,
+		rowList : [10,30,50],
+        rownumbers: true, 
+        rownumWidth: 25, 
+        autowidth:true,
+        multiselect: true,
+        pager: "#jqGridPager",
+        jsonReader : {
+            root: "page.list",
+            page: "page.currPage",
+            total: "page.totalPage",
+            records: "page.totalCount"
+        },
+        prmNames : {
+            page:"page", 
+            rows:"limit", 
+            order: "order"
+        },
+        gridComplete:function(){
+        	//隐藏grid底部滚动条
+        	$("#jqGrid").closest(".ui-jqgrid-bdiv").css({ "overflow-x" : "hidden" }); 
+        }
+    });
+});
+
+var setting = {
+    data: {
+        simpleData: {
+            enable: true,
+            idKey: "menuKey",
+            pIdKey: "parentKey",
+            rootPId: "-1"
+        },
+        key: {
+            url:"nourl"
+        }
+    }
+};
+
+var ztree;
+
+var vm = new Vue({
+	el:'#rrapp',
+	data:{
+		showList: true,
+		title: null,
+		genType: {
+            moduleText:null,
+            moduleId:"",
+		},
+	},
+	methods: {
+        getMenu: function(menuId){
+            //加载菜单树
+            $.get(baseURL + "sys/menu/select", function(r){
+                ztree = $.fn.zTree.init($("#menuTree"), setting, r.menuList);
+                var node = ztree.getNodeByParam("menuKey", vm.genType.moduleId);
+                ztree.selectNode(node);
+                vm.genType.moduleText = node.name;
+            })
+        },
+		query: function () {
+			vm.reload();
+		},
+		add: function(){
+			vm.showList = false;
+			vm.title = "${lang.sys_string_add}";
+			vm.genType = {};
+            vm.getMenu();
+		},
+		update: function (event) {
+			var id = getSelectedRow();
+			if(id == null){
+				return ;
+			}
+			vm.showList = false;
+            vm.title = "${lang.sys_string_change}";
+            
+            vm.getInfo(id);
+            vm.getMenu();
+		},
+		saveOrUpdate: function (event) {
+			var url = vm.genType.id == null ? "gen/gentype/save" : "gen/gentype/update";
+			$.ajax({
+				type: "POST",
+			    url: baseURL + url,
+                contentType: "application/json",
+			    data: JSON.stringify(vm.genType),
+			    success: function(r){
+			    	if(r.code === 0){
+						alert('${lang.sys_string_successful}', function(index){
+							vm.reload();
+						});
+					}else{
+						alert(r.msg);
+					}
+				}
+			});
+		},
+		del: function (event) {
+			var ids = getSelectedRows();
+			if(ids == null){
+				return ;
+			}
+			
+			confirm('${lang.sys_string_are_sure_to_delete}？', function(){
+				$.ajax({
+					type: "POST",
+				    url: baseURL + "gen/gentype/delete",
+                    contentType: "application/json",
+				    data: JSON.stringify(ids),
+				    success: function(r){
+						if(r.code == 0){
+							alert('${lang.sys_string_successful}', function(index){
+								$("#jqGrid").trigger("reloadGrid");
+							});
+						}else{
+							alert(r.msg);
+						}
+					}
+				});
+			});
+		},
+		copy: function (event) {
+			var ids = getSelectedRows();
+			if(ids == null){
+				return ;
+			}
+			confirm('${lang.sys_string_are_sure_to_copy}？', function(){
+				$.ajax({
+					type: "POST",
+					url: baseURL + "gen/gentype/copy",
+					contentType: "application/json",
+					data: JSON.stringify(ids),
+					success: function(r){
+						if(r.code == 0){
+							alert('${lang.sys_string_successful}', function(index){
+								$("#jqGrid").trigger("reloadGrid");
+							});
+						}else{
+							alert(r.msg);
+						}
+					}
+				});
+			});
+		},
+		getInfo: function(id){
+			$.get(baseURL + "gen/gentype/info/"+id, function(r){
+                vm.genType = r.genType;
+            });
+		},
+		reload: function (event) {
+			vm.showList = true;
+			var page = $("#jqGrid").jqGrid('getGridParam','page');
+			$("#jqGrid").jqGrid('setGridParam',{ 
+                page:page
+            }).trigger("reloadGrid");
+		},
+        menuTree: function(){
+            layer.open({
+                type: 1,
+                offset: '50px',
+                skin: 'layui-layer-molv',
+                title: "${lang.sys_string_select_menu}",
+                area: ['300px', '450px'],
+                shade: 0,
+                shadeClose: false,
+                content: jQuery("#menuLayer"),
+                btn: ['${lang.sys_string_confirm}', '${lang.sys_string_cancel}'],
+                btn1: function (index) {
+                    var node = ztree.getSelectedNodes();
+                    //选择上级菜单
+                    vm.genType.moduleId = node[0].menuKey;
+                    vm.genType.moduleText = node[0].name;
+
+                    layer.close(index);
+                }
+            });
+        },
+	}
+});

@@ -1,0 +1,49 @@
+package ${package}.${moduleName}.entity;
+
+import com.baomidou.mybatisplus.annotations.*;
+import run.boring.core.table.annotation.Table;
+
+    #if(${hasBigDecimal})
+    #end
+
+import java.io.Serializable;
+
+/**
+ * ${comment}
+ * 
+ * @author ${author}
+ * @email ${email}
+ * @date ${datetime}
+ */
+${index}
+@TableName("${tableName}")
+@Table(value = "${tableName}", comment = "${comment}")
+public class ${className}Entity implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+#foreach ($column in $columns)
+	/**
+	 * $column.comment
+	 */
+#if($column.name == $pk.name)
+	@TableId
+#end
+	$column.genAnnotation
+	private $column.attrType $column.attrname;
+#end
+
+#foreach ($column in $columns)
+	/**
+	 * 设置：${column.comment}
+	 */
+	public void set${column.attrName}($column.attrType $column.attrname) {
+		this.$column.attrname = $column.attrname;
+	}
+	/**
+	 * 获取：${column.comment}
+	 */
+	public $column.attrType get${column.attrName}() {
+		return $column.attrname;
+	}
+#end
+}

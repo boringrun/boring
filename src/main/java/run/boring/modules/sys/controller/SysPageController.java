@@ -1,0 +1,233 @@
+package run.boring.modules.sys.controller;
+
+import run.boring.modules.client.entity.WebAuthenticationEntity;
+import run.boring.modules.client.service.WebAuthenticationService;
+import run.boring.modules.spm.service.SuperPositionModelService;
+import run.boring.modules.sys.service.SysConfigService;
+import run.boring.modules.sys.service.SysUserRoleService;
+import run.boring.modules.sys.shiro.ShiroUtils;
+import run.boring.modules.wall.site.WallDefault;
+import run.boring.core.site.PageFactory;
+import run.boring.core.site.PluginFactory;
+import run.boring.core.thread.Tag;
+import run.boring.core.thread.TagTaskExecutor;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.List;
+
+@Controller
+public class SysPageController implements ErrorController {
+
+    @Autowired
+    @Lazy
+    SuperPositionModelService superPositionModelService;
+
+    @Autowired
+    @Lazy
+    WebAuthenticationService webAuthenticationService;
+
+    @Autowired
+    @Lazy
+    SysConfigService sysConfigService;
+
+    @Autowired
+    PageFactory pageFactory;
+
+    @Autowired
+    PluginFactory pluginFactory;
+
+    @Autowired
+    WallDefault wallDefault;
+
+    @Autowired
+    SysUserRoleService sysUserRoleService;
+
+    @Autowired
+    TagTaskExecutor tagTaskExecutor;
+
+    List<String> active = new ArrayList<>();
+
+    @RequestMapping("modules/{module}/{url}")
+    public String module(@PathVariable("module") String module, @PathVariable("url") String url, String lang, Model model) {
+        if (StringUtils.isNotBlank(lang)) {
+            model.addAttribute("locale", lang);
+        }
+        return "modules/" + module + "/" + url;
+    }
+
+    @RequestMapping("modules/{module}/{url}.js")
+    public String js(@PathVariable("module") String module, @PathVariable("url") String url, String lang, Model model) {
+        if (StringUtils.isNotBlank(lang)) {
+            model.addAttribute("locale", lang);
+        }
+        return "modules/" + module + "/" + url + ".js";
+    }
+
+    @RequestMapping({"modules/**", "pages/**"})
+    public String modules(HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getRequestURI();
+    }
+
+    @RequestMapping(value = {"index.html"})
+    public String index(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model, String spm) {
+        active(httpServletRequest);
+        inactive(httpServletRequest);
+        if (isActive(httpServletRequest)) {
+            if (superPositionModelService.menuWithSpm()) {
+                return superPositionModelService.getResourceId(httpServletRequest, httpServletResponse, model, spm);
+            }
+            return pageFactory.index(httpServletRequest, httpServletResponse, model);
+        }
+        return pageFactory._404(httpServletRequest, httpServletResponse, model);
+    }
+
+    public void active(HttpServletRequest request) {
+        String param = request.getParameter("active");
+        if (StringUtils.isBlank(param) || !"admin".equals(param))
+            return;
+        String sessionId = request.getSession().getId();
+        active.add(sessionId);
+    }
+
+    public boolean isActive(HttpServletRequest request) {
+        String sessionId = request.getSession().getId();
+        return active.contains(sessionId);
+    }
+
+    public void inactive(HttpServletRequest request) {
+        String param = request.getParameter("inactive");
+        if (StringUtils.isNotBlank(param) && "admin".equals(param)) {
+            String sessionId = request.getSession().getId();
+            active.remove(sessionId);
+        }
+    }
+
+    @RequestMapping("index1.html")
+    public String index1(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        if (isActive(httpServletRequest))
+            return "index1";
+        return pageFactory._404(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping("login.html")
+    public String login(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory.login(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping("login")
+    public String loginOauth(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        /**
+         * 根据系统配置方式进行登录验证
+         */
+        String host = httpServletRequest.getHeader("host");
+        WebAuthenticationEntity webAuthenticationEntity = webAuthenticationService.getByClientId(host);
+        if (StringUtils.isNotEmpty(host)) {
+            if (null == webAuthenticationEntity)
+                webAuthenticationEntity = webAuthenticationService.getByClientId(sysConfigService.getOauth2LoginClientId(host));
+            if (null != webAuthenticationEntity) {
+                StringBuilder sb = new StringBuilder();
+                if (StringUtils.isNotEmpty(webAuthenticationEntity.getAuthorizeUri()) && StringUtils.isNotEmpty(webAuthenticationEntity.getRedirectUri())) {
+                    sb.append(webAuthenticationEntity.getAuthorizeUri());
+                    sb.append("?response_type=code&client_id=");
+                    sb.append(webAuthenticationEntity.getClientId());
+                    sb.append("&redirect_uri=");
+                    sb.append(webAuthenticationEntity.getRedirectUri());
+                    String redirect = sb.toString();
+                    return "redirect:" + redirect;
+                }
+            }
+        }
+        return pageFactory.login(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping("main.html")
+    public String main(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory.main(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping("loading.html")
+    public String loading(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory.loading(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping({"404.html", "404"})
+    public String _404(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory._404(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping({"500.html", "500"})
+    public String _500(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory._500(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping({"505.html", "505"})
+    public String _505(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory._505(httpServletRequest, httpServletResponse, model);
+    }
+
+    @Override
+    public String getErrorPath() {
+        return null;
+    }
+
+    @RequestMapping({"error.html", "error"})
+    public String error(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        return pageFactory.error(httpServletRequest, httpServletResponse, model);
+    }
+
+    @RequestMapping({"plugin.html", "plugin"})
+    @ResponseBody
+    public Object plugin(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Model model) {
+        String unload = httpServletRequest.getParameter("load");
+        if (StringUtils.isNotBlank(unload) && unload.equals("unload")) {
+            return pluginFactory.uninstallPlugin();
+        } else {
+            return pluginFactory.installPlugin();
+        }
+    }
+
+    @RequestMapping({"classpath.html", "classpath"})
+    @ResponseBody
+    public String getClassPath() {
+        if (!ShiroUtils.isLogin() || !sysUserRoleService.isSystemAdministrator(ShiroUtils.getUserUuid()))
+            return "";
+        return System.getProperty("java.class.path");
+    }
+
+    @RequestMapping({"firewall.html", "firewall"})
+    @ResponseBody
+    public WallDefault wall(Boolean open, Boolean white, Boolean black, Boolean host, Boolean visit, Boolean url) {
+        if (!ShiroUtils.isLogin() || !sysUserRoleService.isSystemAdministrator(ShiroUtils.getUserUuid()))
+            return null;
+        if (null != open)
+            wallDefault.setOpen(open);
+        if (null != white)
+            wallDefault.setIpWhiteEnable(white);
+        if (null != black)
+            wallDefault.setIpBlackEnable(black);
+        if (null != host)
+            wallDefault.setHostEnable(host);
+        if (null != visit)
+            wallDefault.setVisitEnable(visit);
+        if (null != url)
+            wallDefault.setUrlBlackEnable(url);
+        return wallDefault;
+    }
+
+    @RequestMapping({"threading.html", "threading"})
+    @ResponseBody
+    public List<Tag> getThreading() {
+        return tagTaskExecutor.getRunning();
+    }
+}

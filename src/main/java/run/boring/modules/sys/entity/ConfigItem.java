@@ -1,0 +1,159 @@
+package run.boring.modules.sys.entity;
+
+import run.boring.handler.annotation.ConfigField;
+import run.boring.handler.annotation.ConfigParam;
+import run.boring.core.utils.Utils;
+import org.apache.commons.lang.StringUtils;
+import run.boring.modules.sys.service.SysConfigService;
+
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.util.Objects;
+
+public class ConfigItem implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private String paramKey;
+
+    private String fieldName;
+
+    private Object paramValue;
+
+    private String type;
+
+    private String category;
+
+    private String name;
+
+    private String description;
+
+    private Object options;
+
+    private boolean readonly;
+
+    private int order;
+
+    public ConfigItem() {
+    }
+
+    public ConfigItem(SysConfigEntity entity) {
+        this.paramKey = entity.getParamKey();
+        this.type = entity.getType();
+        this.category = entity.getCategory();
+        this.name = entity.getName();
+        this.description = entity.getDescription();
+        if (Objects.equals(this.type, SysConfigService.boolean_type)) {
+            this.paramValue = Utils.parseBoolean(entity.getParamValue());
+        } else {
+            this.paramValue = entity.getParamValue();
+        }
+        if (Objects.equals(this.type, SysConfigService.selection_type) && StringUtils.isNotBlank(entity.getOptions())) {
+            String options = entity.getOptions();
+            this.options = options.split(",");
+        } else
+            this.options = entity.getOptions();
+        this.readonly = entity.isReadonly();
+        this.order = entity.getOrder();
+    }
+
+    public ConfigItem(ConfigParam configParam, ConfigField configField, String prefix, Field field, Object paramValue) {
+        this.paramKey = configParam.paramKey();
+        this.type = configField.category().getValue();
+        this.category = configParam.category();
+        this.name = configField.name();
+        this.description = configField.description();
+        this.paramValue = paramValue;
+        this.fieldName = field.getName();
+        if (StringUtils.isNotBlank(prefix)) {
+            this.fieldName = prefix + "." + this.fieldName;
+        }
+        if (Objects.equals(this.type, SysConfigService.selection_type) && StringUtils.isNotBlank(configField.options())) {
+            String options = configField.options();
+            this.options = options.split(",");
+        } else
+            this.options = configField.options();
+        this.readonly = configField.readonly();
+        this.order = configField.order();
+    }
+
+    public String getParamKey() {
+        return paramKey;
+    }
+
+    public void setParamKey(String paramKey) {
+        this.paramKey = paramKey;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
+    public Object getParamValue() {
+        return paramValue;
+    }
+
+    public void setParamValue(Object paramValue) {
+        this.paramValue = paramValue;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Object getOptions() {
+        return options;
+    }
+
+    public void setOptions(Object options) {
+        this.options = options;
+    }
+
+    public boolean isReadonly() {
+        return readonly;
+    }
+
+    public void setReadonly(boolean readonly) {
+        this.readonly = readonly;
+    }
+
+    public int getOrder() {
+        return order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
+    }
+}

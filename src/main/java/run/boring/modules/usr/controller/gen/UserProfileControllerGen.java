@@ -1,0 +1,79 @@
+package run.boring.modules.usr.controller.gen;
+
+import java.util.Arrays;
+import java.util.Map;
+import run.boring.core.validator.ValidatorUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import run.boring.modules.usr.entity.UserProfileEntity;
+import run.boring.modules.usr.service.UserProfileService;
+import run.boring.core.utils.PageUtils;
+import run.boring.core.utils.R;
+
+/**
+ * 用户信息
+ *
+ * @author Shaohua Xu
+ * @email henryxm@163.com
+ * @date 2021-06
+ */
+public class UserProfileControllerGen {
+
+    @Autowired
+    protected UserProfileService userProfileService;
+
+    /**
+     * 列表
+     */
+    @RequestMapping("/list")
+    @RequiresPermissions("usr:userprofile:list")
+    public R list(@RequestParam Map<String, Object> params) {
+        PageUtils page = userProfileService.queryPage(params);
+        return R.ok().put("page" , page);
+    }
+
+    /**
+     * 信息
+     */
+    @RequestMapping("/info/{uuid}")
+    @RequiresPermissions("usr:userprofile:info")
+    public R info(@PathVariable("uuid") String uuid) {
+        UserProfileEntity userProfile = userProfileService.selectById(uuid);
+        return R.ok().put("userProfile" , userProfile);
+    }
+
+    /**
+     * 保存
+     */
+    @RequestMapping("/save")
+    @RequiresPermissions("usr:userprofile:save")
+    public R save(@RequestBody UserProfileEntity userProfile) {
+        userProfileService.insert(userProfile);
+        return R.ok();
+    }
+
+    /**
+     * 修改
+     */
+    @RequestMapping("/update")
+    @RequiresPermissions("usr:userprofile:update")
+    public R update(@RequestBody UserProfileEntity userProfile) {
+        ValidatorUtils.validateEntity(userProfile);
+        userProfileService.updateAllColumnById(userProfile);//全部更新
+        return R.ok();
+    }
+
+    /**
+     * 删除
+     */
+    @RequestMapping("/delete")
+    @RequiresPermissions("usr:userprofile:delete")
+    public R delete(@RequestBody String[] uuids) {
+        userProfileService.deleteBatchIds(Arrays.asList(uuids));
+        return R.ok();
+    }
+}

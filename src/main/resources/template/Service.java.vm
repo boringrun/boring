@@ -1,0 +1,10 @@
+package ${package}.${moduleName}.service;
+
+import run.boring.base.ModuleService;
+import ${package}.${moduleName}.dao.${className}Dao;
+import ${package}.${moduleName}.entity.${className}Entity;
+
+@Service
+public class ${className}Service extends ModuleService<${className}Dao, ${className}Entity> {
+
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>${lang.sys_string_menu_management}</title>
+<#include "/header.html">
+<link rel="stylesheet" href="${request.contextPath}/statics/css/bootstrap-table.min.css">
+<link rel="stylesheet" href="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.css">
+<script src="${request.contextPath}/statics/libs/bootstrap-table.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.bootstrap3.js"></script>
+<script src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.extension.js"></script>
+<script src="${request.contextPath}/statics/plugins/treegrid/tree.table.js"></script>
+</head>
+<body>
+<div id="rrapp" v-cloak>
+	<div v-show="showList">
+		<div class="grid-btn">
+			<#if shiro.hasPermission("sys:menu:save")>
+			<a class="btn btn-primary" @click="add"><i class="fa fa-plus"></i>&nbsp;${lang.sys_string_add}</a>
+			</#if>
+			<#if shiro.hasPermission("sys:menu:update")>
+			<a class="btn btn-primary" @click="update"><i class="fa fa-pencil-square-o"></i>&nbsp;${lang.sys_string_change}</a>
+			</#if>
+			<#if shiro.hasPermission("sys:menu:delete")>
+			<a class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>&nbsp;${lang.sys_string_delete}</a>
+			</#if>
+		</div>
+		<table id="menuTable" data-mobile-responsive="true" data-click-to-select="true">
+			<thead>
+			<tr>
+				<th data-field="selectItem" data-checkbox="true"></th>
+			</tr>
+			</thead>
+		</table>
+	</div>
+
+	<div v-show="!showList" class="panel panel-default">
+		<div class="panel-heading">{{title}}</div>
+		<form class="form-horizontal">
+			<div class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_type}</div>
+				<label class="radio-inline">
+					<input type="radio" name="type" value="0" v-model="menu.type"/> ${lang.sys_string_directory}
+				</label>
+				<label class="radio-inline">
+					<input type="radio" name="type" value="1" v-model="menu.type"/> ${lang.sys_string_menu}
+				</label>
+				<label class="radio-inline">
+					<input type="radio" name="type" value="2" v-model="menu.type"/> ${lang.sys_string_button}
+				</label>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_menu_name}</div>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" v-model="menu.name" placeholder="${lang.sys_string_menu_or_button_name}"/>
+				</div>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_menu_key}</div>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" v-model="menu.menuKey" placeholder="${lang.sys_string_menu_key_format}"/>
+				</div>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_upper_menu}</div>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" style="cursor:pointer;" v-model="menu.parentName" @click="menuTree" readonly="readonly" placeholder="${lang.sys_string_root_menu}"/>
+				</div>
+			</div>
+			<div v-if="menu.type == 1" class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_menu_url}</div>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" v-model="menu.url" placeholder="${lang.sys_string_menu_url}"/>
+				</div>
+			</div>
+			<div v-if="menu.type == 1 || menu.type == 2" class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_permissions}</div>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" v-model="menu.perms" placeholder="${lang.sys_string_permissions_ex}"/>
+				</div>
+			</div>
+			<div v-if="menu.type != 2" class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_order_number}</div>
+				<div class="col-sm-10">
+					<input type="number" class="form-control" v-model="menu.orderNum" placeholder="${lang.sys_string_order_number}"/>
+				</div>
+			</div>
+			<div v-if="menu.type != 2" class="form-group">
+				<div class="col-sm-2 control-label">${lang.sys_string_icon}</div>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" v-model="menu.icon" placeholder="${lang.sys_string_menu_icon}"/>
+					<code style="margin-top:4px;display: block;">${lang.sys_string_find_icon}：http://www.fontawesome.com.cn/faicons/</code>
+				</div>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-2 control-label"></div>
+				<input type="button" class="btn btn-primary" @click="saveOrUpdate" value="${lang.sys_string_confirm}"/>
+				&nbsp;&nbsp;<input type="button" class="btn btn-warning" @click="reload" value="${lang.sys_string_back}"/>
+			</div>
+		</form>
+	</div>
+</div>
+
+<!-- 选择菜单 -->
+<div id="menuLayer" style="display: none;padding:10px;">
+	<ul id="menuTree" class="ztree"></ul>
+</div>
+
+<script src="${request.contextPath}/modules/sys/menu.js?_${.now?long}"></script>
+</body>
+</html>

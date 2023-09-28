@@ -1,0 +1,15 @@
+package ${package}.${moduleName}.site;
+
+import run.boring.base.ModuleMenu;
+import org.springframework.stereotype.Service;
+
+/**
+ * @author ${author}
+ * @email ${email}
+ * @date ${datetime}
+ */
+@Service
+@Menu(name = "${moduleText}", order = ${moduleOrder}, ico = "${moduleIcon}")
+public class ${upperModuleName}Menu extends ModuleMenu {
+
+}

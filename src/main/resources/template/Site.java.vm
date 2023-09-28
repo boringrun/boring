@@ -1,0 +1,33 @@
+package ${package}.${moduleName}.site;
+
+import run.boring.core.annotation.PageAware;
+import run.boring.core.site.SiteFactory;
+import run.boring.core.site.TemplateFactory;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ${upperModuleName}Site implements SiteFactory.Site, TemplateFactory.Template {
+    public final static String siteId = "${moduleName}";
+    public final static String pack = "${moduleName}";
+
+#foreach ($table in $tables)
+    @PageAware(login = true)
+    public String ${table.filename} = "modules/${moduleName}/${table.filename}";
+
+#end
+#foreach ($table in $tables)
+    public String get${table.className}Key() {
+        return getKey("${table.filename}");
+    }
+
+#end
+    @Override
+    public String getId() {
+        return siteId;
+    }
+
+    @Override
+    public String getPack() {
+        return pack;
+    }
+}
